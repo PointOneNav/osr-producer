@@ -1,0 +1,12 @@
+# Septentrio sample application
+
+add_executable(septentrio septentrio_main.cc serial_port.cc)
+# add_dependencies(septentrio polaris_cpp_client)
+add_dependencies(septentrio polaris_project)
+target_link_libraries(septentrio "libosr_producer.a")
+target_link_libraries(septentrio "libgpstk.so")
+# target_link_libraries(septentrio "${POLARIS}")
+# target_link_libraries(septentrio polaris_cpp_client)
+target_link_libraries(septentrio "${CMAKE_SOURCE_DIR}/external/src/polaris_project-build/libpolaris_cpp_client.so")
+target_link_libraries(septentrio "${GLOG}")
+target_link_libraries(septentrio "${GFLAGS}")
