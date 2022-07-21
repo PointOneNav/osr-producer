@@ -24,9 +24,16 @@ link_directories(${EXTERNAL_INSTALL_LOCATION}/lib
 find_library(GLOG glog)
 find_library(GFLAGS gflags)
 
+execute_process(
+    COMMAND /usr/bin/uname -m
+    OUTPUT_VARIABLE ARCH
+)
+string(STRIP ${ARCH} ARCH)
 ExternalProject_Add(
     osr-producer
-    URL "http://localhost:8000/libosr-producer-0.2.1.tgz"
+    # TODO: Update this URL when we figure out where the file lives.
+    URL "http://localhost:8000/libosr-producer-0.2.1.linux-${ARCH}.tgz"
+    # URL "https://s3.amazonaws.com/files.pointonenav.com/libosr-producer-0.2.1.linux-${ARCH}.tgz"
     PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/external
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
@@ -37,8 +44,6 @@ ExternalProject_Add(
     GIT_REPOSITORY https://github.com/PointOneNav/polaris.git
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
-
-# add_library(osr_producer INTERFACE)
 
 ################################################################################
 # Example Applications
