@@ -62,7 +62,8 @@ DEFINE_string(
     "SBF messages and to which to write corrections messages. (default: "
     "/dev/ttyACM0)");
 
-DEFINE_uint32(receiver_speed, 460800, "The receiver's serial port's speed.");
+DEFINE_uint32(sbf_speed, 460800, "The receiver's DBF port's serial port's "
+    "speed.");
 
 DEFINE_string(
     sbf_interface, "USB1",
@@ -271,7 +272,7 @@ int main(int argc, char* argv[]) {
   // Open the serial port to the receiver through which we'll send RTCM
   // corrections.
   SerialPort corrections_out_port(&io_service);
-  corrections_out_port.Open(FLAGS_sbf_path, FLAGS_receiver_speed);
+  corrections_out_port.Open(FLAGS_sbf_path, FLAGS_sbf_speed);
   producer.SetRTCMCallback([&](const uint8_t* buffer, size_t size_bytes) {
     stats.correction_out_bytes += size_bytes;
     corrections_out_port.Write(buffer, size_bytes);
@@ -394,7 +395,7 @@ int main(int argc, char* argv[]) {
   // Open a serial port from which to read the Septentrio's SBF messages.
   // Pass these mesasges to the OSR producer via its receiver data input.
   SerialPort sbf_port(&io_service);
-  sbf_port.Open(FLAGS_sbf_path, FLAGS_receiver_speed,
+  sbf_port.Open(FLAGS_sbf_path, FLAGS_sbf_speed,
                 [&](const uint8_t* data, size_t size_bytes) {
                   stats.sbf_in_bytes += size_bytes;
                   std::unique_lock<std::mutex> lock(producer_lock);
