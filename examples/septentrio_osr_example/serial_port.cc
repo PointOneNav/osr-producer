@@ -6,13 +6,7 @@
 
 #include <boost/bind.hpp>
 
-#if 0
 #include <glog/logging.h>
-#else
-static std::ostream null_stream(0);
-#define LOG(severity) null_stream
-#define VLOG(severity) null_stream
-#endif
 
 using namespace boost::asio::ip;
 using namespace point_one::applications;
@@ -85,7 +79,7 @@ bool SerialPort::Open(const std::string& port_name, int baud_rate) {
 void SerialPort::Write(const uint8_t* buf, size_t len) {
   if (!port_.is_open()) return;
 
-  VLOG(1) << "Sending " << len << " bytes to '" << port_name_ << "'.";
+  VLOG(3) << "Sending " << len << " bytes to '" << port_name_ << "'.";
 
   size_t written = 0;
   while (written < len) {

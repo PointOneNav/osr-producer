@@ -1,5 +1,80 @@
 /**************************************************************************/ /**
- * @brief Simple SSR-to-OSR utility.
+ * @brief Convert SSR model data to OSR measurements to be sent to a Septentrio
+ *        GNSS receiver.
+ *
+ * This application uses the Point One `osr_producer` library to provide GNSS
+ * corrections data to a Septentrio GNSS receiver connected via serial. It can
+ * obtain GNSS corrections from the Point One Polaris network using one or more
+ * of the following sources:
+ * -# GNSS measurements from a nearby base station (observation-space
+ *    representation data or OSR) sent over IP
+ * -# State-space representation (SSR) model data sent over IP
+ * -# State-space representation (SSR) model data sent over L-band satellite
+ *    link, received by the Septentrio receiver
+ *
+ * `osr_producer` will automatically determine the best corrections source to
+ * use based on the user location and the age and quality of the corrections
+ * data.
+ *
+ * @section osr_septentrio_example Example Usage
+ *
+ * Connect a septentrio using `/dev/ttyACM0` (default) and receive both OSR and
+ * SSR corrections data from Polaris over IP:
+ *
+ * ```
+ * ./septentrio_osr_example \
+ *   --polaris-osr \
+ *   --polaris-osr-api-key=ABCD1234 --polaris-osr-unique-id=fred \
+ *   --polaris-ssr \
+ *   --polaris-ssr-api-key=ABCD1234 --polaris-ssr-unique-id=fred \
+ *   --polaris-ssr-beacon=SSR1234
+ * ```
+ *
+ * Connect a Septentrio using `/dev/ttyACM0` and receive SSR corrections over
+ * L-band through the Septentrio on `/dev/ttyACM1` (default):
+ *
+ * ```
+ * ./septentrio_osr_example --lband
+ * ```
+ *
+ * Configure required settings for a Septentrio connected on `/dev/ttyACM3`:
+ * ```
+ * ./septentrio_osr_example --sbf-path=/dev/ttyACM3
+ * ```
+ *
+ * @section osr_septentrio_polaris Connecting To Polaris
+ *
+ * To connect to Polaris to receive OSR or SSR data over IP, you must provide
+ * the Polaris API key assigned to you by Point One, and you must specify a
+ * unique ID string for your device.
+ *
+ * @note
+ * The SSR corrections service currently uses different API keys than the OSR
+ * service. When using both OSR and SSR, please ensure that you use the correct
+ * keys as instructed by Point One.
+ *
+ * @warning
+ * When using the same API key for multiple devices, each device must have its
+ * own unique ID to prevent unexpected behavior.
+ *
+ * For SSR corrections, you must also provide a _beacon ID_, which designates
+ * the appropriate SSR data stream. This will be provided by Point One.
+ *
+ * @section osr_septentrio_rx_config Configuring The Septentrio
+ *
+ * This application requires the Septentrio to be configured to output the
+ * following Septentrio binary format (SBF) messages on its serial interface:
+ * - `PVTGeodetic2` - Position and time updates from the receiver (recommended
+ *   1 second interval)
+ * - `GPSNav`, `GLONav`, `GALNav`, `BDSNav` - Satellite ephemeris data
+ *   (recommended on-change)
+ *
+ * To use L-band, the Septentrio should be configured for L-band parameters
+ * and to output the incoming data on a _separate_ serial interface.
+ *
+ * By default, this application will attempt to configure the Septentrio for
+ * these outputs. If desired, you can disable this automatic configuration
+ * via the `--noconfigure` option.
  ******************************************************************************/
 
 #include <functional>
@@ -23,7 +98,7 @@
 
 DEFINE_bool(polaris_osr, false,
             "Read OSR correction data from a Polaris server. You must provide "
-            " Polaris API key.");
+            "Polaris API key.");
 DEFINE_string(polaris_osr_hostname, "polaris.pointonenav.com",
               "The hostname of the Polaris server providing OSR corrections.");
 DEFINE_string(polaris_osr_api_hostname, "api.pointonenav.com",
@@ -40,7 +115,7 @@ DEFINE_string(polaris_osr_unique_id, "ssr-to-osr",
 
 DEFINE_bool(polaris_ssr, false,
             "Read SSR correction data from a Polaris server. You must provide "
-            " a Polaris beacon ID and a API key.");
+            "a Polaris beacon ID and a API key.");
 DEFINE_string(polaris_ssr_hostname, "ssrz.polaris.p1beta.com",
               "The hostname of the Polaris server providing SSR corrections.");
 DEFINE_string(polaris_ssr_api_hostname, "api.p1beta.com",
@@ -48,9 +123,10 @@ DEFINE_string(polaris_ssr_api_hostname, "api.p1beta.com",
 DEFINE_string(polaris_ssr_beacon, "The ID of the beacon providing SSR.", "");
 DEFINE_string(polaris_ssr_api_key, "",
               "The API key to use when connecting to Polaris for SSR.");
-DEFINE_string(polaris_ssr_unique_id, "ssr-to-osr",
+DEFINE_string(polaris_ssr_unique_id, "",
               "A unique string to identify this Polaris SSR connection among "
-              "others using the same API key.");
+              "others using the same API key. Defaults to a variation of "
+              "polaris_osr_unique_id.");
 
 ////////////////////////////////////////////////////////////////////////////////
 // GNSS Receiver Input/Output
@@ -123,7 +199,7 @@ DEFINE_uint32(rtcm_position_type, 1005,
               "The type of RTCM position message to generate when using SSR "
               "corrections.");
 
-DEFINE_string(geoid_file, "",
+DEFINE_string(geoid_file, "external/share/egm2008-15.pgm",
               "The path to a *.pgm file containing geoid data.");
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -206,7 +282,7 @@ static void ConfigureSeptentrio(SerialPort& port) {
 
   ss.str("");
   ss << "setSBFOutput, Stream2, " << FLAGS_sbf_interface
-     << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic, sec1\r";
+     << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic2, sec1\r";
   VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
   port.Write(ss.str());
 
@@ -283,6 +359,13 @@ int main(int argc, char* argv[]) {
     ConfigureSeptentrio(corrections_out_port);
   }
 
+  // Usefulness check.
+  if (!FLAGS_polaris_osr && !FLAGS_polaris_ssr && !FLAGS_lband) {
+    LOG(ERROR) << "You haven't enbled any input corrections source (via "
+               << "--polaris_osr, --polaris_ssr, and/or --lband).";
+      return 1;
+  }
+
   // If requested, create a Polaris client for OSR. Pass the corrections it
   // receives over the network to the OSR producer's OSR input.
   std::unique_ptr<point_one::polaris::PolarisClient> polaris_osr_client;
@@ -317,8 +400,12 @@ int main(int argc, char* argv[]) {
       LOG(ERROR) << "Please provide a Polaris SSR API key.";
       return 1;
     }
+    std::string polaris_ssr_unique_id = FLAGS_polaris_ssr_unique_id;
+    if (polaris_ssr_unique_id.empty()) {
+      polaris_ssr_unique_id = FLAGS_polaris_osr_unique_id + "_ssr";
+    }
     polaris_ssr_client.reset(new PolarisClient(FLAGS_polaris_ssr_api_key,
-                                               FLAGS_polaris_ssr_unique_id));
+                                               polaris_ssr_unique_id));
     if (!FLAGS_polaris_ssr_api_hostname.empty()) {
       polaris_ssr_client->SetPolarisAuthenticationServer(
           FLAGS_polaris_ssr_api_hostname);
@@ -347,7 +434,7 @@ int main(int argc, char* argv[]) {
   int last_week = 0;
   auto position_updater = [&](int week, double time_of_week_secs,
                               const std::array<double, 3>& lla_deg) {
-    if (0 == week || std::isnan(time_of_week_secs)) {
+    if (week<0 || std::isnan(time_of_week_secs)) {
       return;
     }
     // Limit position updates to not more frequent than once every 30s.
@@ -364,6 +451,10 @@ int main(int argc, char* argv[]) {
     if (polaris_osr_client) {
       polaris_osr_client->SendLLAPosition(lla_deg[0], lla_deg[1], lla_deg[2]);
     }
+    // Note that for SSR we currently subscribe to the stream for a specific
+    // region manually. We do not call SendLLAPosition() for the SSR Polaris
+    // client. Doing so may disconnect the SSR data stream unexpectedly.
+    // This is subject to change in the future.
   };
   producer.SetPositionTimeCallback(position_updater);
 

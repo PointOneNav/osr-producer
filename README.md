@@ -8,13 +8,15 @@ library.
 
 If necessary, install dependencies:
 ```bash
-sudo apt-get install cmake libgflags-dev libgoogle-glog-dev
+sudo apt-get install cmake libgflags-dev libgoogle-glog-dev libboost-all-dev
 ```
 
 Then build with CMake:
 ```bash
 mkdir build
 cd build
-cmake
+cmake ..
 make
 ```
+
+To cross compile (eg build an Arm executable on an Intel host) pass `-DCMAKE_TOOLCHAIN_FILE=<your-toolchain-file>` to `cmake ..`.
