@@ -32,8 +32,8 @@ string(STRIP ${ARCH} ARCH)
 ExternalProject_Add(
     osr-producer
     # TODO: Update this URL when we figure out where the file lives.
-    URL "http://localhost:8000/libosr-producer-0.2.1.linux-${ARCH}.tgz"
-    # URL "https://s3.amazonaws.com/files.pointonenav.com/libosr-producer-0.2.1.linux-${ARCH}.tgz"
+    URL "http://localhost:8000/osr_producer.v0.2.1.tar.gz"
+    # URL "https://s3.amazonaws.com/files.pointonenav.com/osr_producer.v0.2.1.tar.gz"
     PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/external
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )

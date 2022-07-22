@@ -1,8 +1,17 @@
 # osr-producer
-SSR to OSR utility
+OSRProducer Library And Sample Applications
 
-# Building with CMake
+This project contains example applications making use of the `OSProducer`
+library.
 
+# Building the Examples
+
+If necessary, install dependencies:
+```bash
+sudo apt-get install cmake libgflags-dev libgoogle-glog-dev
+```
+
+Then build with CMake:
 ```bash
 mkdir build
 cd build

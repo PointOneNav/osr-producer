@@ -15,7 +15,7 @@
 #include <boost/bind.hpp>
 
 #include "serial_port.h"
-#include "osr_producer.h"
+#include "point_one/polaris/osr_producer.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Polaris OSR Corrections Input
