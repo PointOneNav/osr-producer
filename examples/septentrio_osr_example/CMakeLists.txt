@@ -1,5 +1,4 @@
-# Septentrio sample application
-
+# Septentrio example application (see septentrio_main.cc for details).
 add_executable(septentrio_osr_example septentrio_main.cc serial_port.cc)
 
 target_link_libraries(septentrio_osr_example libpolaris_cpp_client)
