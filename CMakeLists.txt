@@ -16,12 +16,7 @@ add_compile_options(-Wall -Werror)
 ################################################################################
 
 include(ExternalProject)
-
-set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
-include_directories(${EXTERNAL_INSTALL_LOCATION}/include
-                    ${CMAKE_CURRENT_SOURCE_DIR}/include)
-link_directories(${EXTERNAL_INSTALL_LOCATION}/lib
-                 ${CMAKE_CURRENT_SOURCE_DIR}/lib)
+include(FetchContent)
 
 # Locate 3rd party dependencies.
 option(GLOG_PREFER_EXPORTED_GLOG_CMAKE_CONFIGURATION TRUE)
@@ -32,15 +27,13 @@ find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
 # Import the Point One OSRProducer library (libosr_producer.a).
-ExternalProject_Add(
-    osr-producer
+FetchContent_Declare(
+    libosr_producer
     # TODO: Update this URL when we figure out where the file lives.
-    URL "http://localhost:8000/osr_producer.v0.2.1.tar.gz"
-    # URL "https://s3.amazonaws.com/files.pointonenav.com/osr_producer.v0.2.1.tar.gz"
+    URL ${CMAKE_SOURCE_DIR}/libosr_producer.zip
     # TODO: URL_HASH xxx
-    PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/external
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
+FetchContent_MakeAvailable(libosr_producer)
 
 # Import the Point One Polaris client.
 ExternalProject_Add(
