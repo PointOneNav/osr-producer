@@ -50,11 +50,27 @@ add_dependencies(libpolaris_cpp_client polaris)
 set_target_properties(
     libpolaris_cpp_client
     PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${SOURCE_DIR}/src;${SOURCE_DIR}/c/src"
+    #INTERFACE_INCLUDE_DIRECTORIES "${SOURCE_DIR}/src;${SOURCE_DIR}/c/src"
     INTERFACE_LINK_DEPENDS ${GLOG_LIBRARIES}
     IMPORTED_LOCATION ${BINARY_DIR}/libpolaris_cpp_client.so
     IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
 )
+
+# Note: ExternalProject does not download the source code until build time, so
+# ${SOURCE_DIR} (i.e., external/polaris) is empty at configure time and we
+# cannot set INTERFACE_INCLUDE_DIRECTOIRES above or cmake will fail saying that
+# ${SOURCE_DIR}/src doesn't exist.
+#
+# In an ideal world, ExternalProject would download the code at configure time,
+# and the property would work as expected. Then, wherever we use this library
+# we could simply reference it with target_link_libraries(), and it would
+# automatically add the extra include paths. Because of the download order, we
+# can't do that unfortunately.
+#
+# The easiest workaround is to define this INCLUDE_DIRS variable, and then
+# explicitly pass it to target_include_directories() wherever we use this
+# library. Annoying, but not the end of the world.
+set(libpolaris_cpp_client_INCLUDE_DIRS "${SOURCE_DIR}/src;${SOURCE_DIR}/c/src")
 
 ################################################################################
 # Example Applications
