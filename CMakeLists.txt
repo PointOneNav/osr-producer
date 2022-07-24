@@ -28,6 +28,8 @@ option(GLOG_PREFER_EXPORTED_GLOG_CMAKE_CONFIGURATION TRUE)
 find_package(Glog REQUIRED)
 option(GFLAGS_PREFER_EXPORTED_GFLAGS_CMAKE_CONFIGURATION TRUE)
 find_package(Gflags REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 
 ExternalProject_Add(
     osr-producer
