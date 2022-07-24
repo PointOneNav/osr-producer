@@ -87,7 +87,7 @@
 #include <glog/logging.h>
 #include <point_one/polaris/polaris_client.h>
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 #include "serial_port.h"
 #include "point_one/polaris/osr_producer.h"
