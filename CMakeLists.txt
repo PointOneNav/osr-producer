@@ -1,11 +1,12 @@
 # Copyright (C) Point One Navigation - All Rights Reserved
 cmake_minimum_required(VERSION 3.3.2)
 
-project(osr-producer)
-
-# Set compilation flags.
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+project(p1_osr_producer)
+
+# Set compilation flags.
 add_compile_options(-Wall -Werror)
 
 ################################################################################
