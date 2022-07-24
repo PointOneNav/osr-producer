@@ -1,8 +1,10 @@
 # Copyright (C) Point One Navigation - All Rights Reserved
-cmake_minimum_required(VERSION 3.3.2)
+cmake_minimum_required(VERSION 3.14)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 project(p1_osr_producer)
 
@@ -21,7 +23,10 @@ include_directories(${EXTERNAL_INSTALL_LOCATION}/include
 link_directories(${EXTERNAL_INSTALL_LOCATION}/lib
                  ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
+# Locate 3rd party dependencies.
+option(GLOG_PREFER_EXPORTED_GLOG_CMAKE_CONFIGURATION TRUE)
 find_package(Glog REQUIRED)
+option(GFLAGS_PREFER_EXPORTED_GFLAGS_CMAKE_CONFIGURATION TRUE)
 find_package(Gflags REQUIRED)
 
 ExternalProject_Add(
