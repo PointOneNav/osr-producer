@@ -1,6 +1,9 @@
 # Copyright (C) Point One Navigation - All Rights Reserved
 cmake_minimum_required(VERSION 3.14)
 
+set(LIBOSR_PRODUCER_URL "" CACHE STRING "Specify the URL of the verison of libosr_producer to be used.")
+set(LIBOSR_PRODUCER_HASH "" CACHE STRING "Specify the MD5 hash libosr_producer zip file to be downloaded.")
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -27,13 +30,33 @@ find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
 # Import the Point One OSRProducer library (libosr_producer.a).
-FetchContent_Declare(
-    libosr_producer
-    # TODO: Update this URL when we figure out where the file lives.
-    URL ${CMAKE_SOURCE_DIR}/libosr_producer.zip
-    # TODO: URL_HASH xxx
-)
-FetchContent_MakeAvailable(libosr_producer)
+if ("${LIBOSR_PRODUCER_URL}" STREQUAL "")
+  # TODO Update this URL when we figure out where the file lives.
+  set(LIBOSR_PRODUCER_URL ${CMAKE_CURRENT_SOURCE_DIR}/libosr_producer.zip)
+  # TODO Set the correct MD5 hash for the file.
+  #set(LIBOSR_PRODUCER_HASH "abcd1234")
+  set(LIBOSR_PRODUCER_HASH "")
+endif()
+
+if (IS_DIRECTORY "${LIBOSR_PRODUCER_URL}")
+  get_filename_component(LIBOSR_PRODUCER_URL "${LIBOSR_PRODUCER_URL}"
+                         REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
+  message(STATUS "Using libosr_producer: ${LIBOSR_PRODUCER_URL}")
+  add_subdirectory(${LIBOSR_PRODUCER_URL})
+else()
+  # Prepend MD5= to the hash if specified.
+  if (NOT "${LIBOSR_PRODUCER_HASH}" STREQUAL "")
+      set(LIBOSR_PRODUCER_HASH "MD5=${LIBOSR_PRODUCER_HASH}")
+  endif()
+
+  message(STATUS "Using libosr_producer: ${LIBOSR_PRODUCER_URL}")
+  FetchContent_Declare(
+      libosr_producer
+      URL ${LIBOSR_PRODUCER_URL}
+      URL_HASH ${LIBOSR_PRODUCER_HASH}
+  )
+  FetchContent_MakeAvailable(libosr_producer)
+endif()
 
 # Import the Point One Polaris client.
 ExternalProject_Add(
