@@ -2,7 +2,7 @@
  * @brief Convert SSR model data to OSR measurements to be sent to a Septentrio
  *        GNSS receiver.
  *
- * This application uses the Point One `osr_producer` library to provide GNSS
+ * This application uses the Point One `libosr_producer` library to provide GNSS
  * corrections data to a Septentrio GNSS receiver connected via serial. It can
  * obtain GNSS corrections from the Point One Polaris network using one or more
  * of the following sources:
@@ -12,71 +12,7 @@
  * -# State-space representation (SSR) model data sent over L-band satellite
  *    link, received by the Septentrio receiver
  *
- * `osr_producer` will automatically determine the best corrections source to
- * use based on the user location and the age and quality of the corrections
- * data.
- *
- * @section osr_septentrio_example Example Usage
- *
- * Connect a septentrio using `/dev/ttyACM0` (default) and receive both OSR and
- * SSR corrections data from Polaris over IP:
- *
- * ```
- * ./septentrio_osr_example \
- *   --polaris-osr \
- *   --polaris-osr-api-key=ABCD1234 --polaris-osr-unique-id=fred \
- *   --polaris-ssr \
- *   --polaris-ssr-api-key=ABCD1234 --polaris-ssr-unique-id=fred \
- *   --polaris-ssr-beacon=SSR1234
- * ```
- *
- * Connect a Septentrio using `/dev/ttyACM0` and receive SSR corrections over
- * L-band through the Septentrio on `/dev/ttyACM1` (default):
- *
- * ```
- * ./septentrio_osr_example --lband
- * ```
- *
- * Configure required settings for a Septentrio connected on `/dev/ttyACM3`:
- * ```
- * ./septentrio_osr_example --sbf-path=/dev/ttyACM3
- * ```
- *
- * @section osr_septentrio_polaris Connecting To Polaris
- *
- * To connect to Polaris to receive OSR or SSR data over IP, you must provide
- * the Polaris API key assigned to you by Point One, and you must specify a
- * unique ID string for your device.
- *
- * @note
- * The SSR corrections service currently uses different API keys than the OSR
- * service. When using both OSR and SSR, please ensure that you use the correct
- * keys as instructed by Point One.
- *
- * @warning
- * When using the same API key for multiple devices, each device must have its
- * own unique ID to prevent unexpected behavior.
- *
- * For SSR corrections, you must also provide a _beacon ID_, which designates
- * the appropriate SSR data stream. This will be provided by Point One.
- *
- * @section osr_septentrio_rx_config Configuring The Septentrio
- *
- * This application requires the Septentrio to be configured to output the
- * following Septentrio binary format (SBF) messages on its serial interface:
- * - `PVTGeodetic2` - Position and time updates from the receiver (recommended
- *   1 second interval)
- * - `GPSNav`, `GLONav`, `GALNav`, `BDSNav` - Satellite ephemeris data
- *   (recommended on-change)
- *
- * To use L-band, the Septentrio should be configured for L-band parameters
- * and to output the incoming data on a _separate_ serial interface.
- *
- * By default, this application will attempt to configure the Septentrio for
- * these outputs. If desired, you can configure only L-band or
- * position/ephemeris settings by specifying `--configure=lband` or
- * `--configure=position` respectively, or you can disable automatic
- * configuration by specifying `--configure=none`.
+ * See `README.md` for more details and usage examples.
  ******************************************************************************/
 
 #include <functional>
@@ -140,7 +76,7 @@ DEFINE_string(
     "SBF messages and to which to write corrections messages. (default: "
     "/dev/ttyACM0)");
 
-DEFINE_uint32(sbf_speed, 460800, "The receiver's DBF port's serial port's "
+DEFINE_uint32(sbf_speed, 460800, "The receiver's SBF port's serial port's "
     "speed.");
 
 DEFINE_string(
