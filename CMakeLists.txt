@@ -65,6 +65,7 @@ ExternalProject_Add(
     URL_HASH MD5=4592480063abab7d36fb7de85cc8f312
     PREFIX ${CMAKE_BINARY_DIR}/external
     INSTALL_COMMAND ""
+    BUILD_COMMAND $(MAKE) polaris_cpp_client
 )
 ExternalProject_Get_Property(polaris BINARY_DIR)
 ExternalProject_Get_Property(polaris SOURCE_DIR)
