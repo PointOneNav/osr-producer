@@ -2,7 +2,7 @@
  * @brief Convert SSR model data to OSR measurements to be sent to a Septentrio
  *        GNSS receiver.
  *
- * This application uses the Point One `osr_producer` library to provide GNSS
+ * This application uses the Point One `libosr_producer` library to provide GNSS
  * corrections data to a Septentrio GNSS receiver connected via serial. It can
  * obtain GNSS corrections from the Point One Polaris network using one or more
  * of the following sources:
@@ -12,69 +12,7 @@
  * -# State-space representation (SSR) model data sent over L-band satellite
  *    link, received by the Septentrio receiver
  *
- * `osr_producer` will automatically determine the best corrections source to
- * use based on the user location and the age and quality of the corrections
- * data.
- *
- * @section osr_septentrio_example Example Usage
- *
- * Connect a septentrio using `/dev/ttyACM0` (default) and receive both OSR and
- * SSR corrections data from Polaris over IP:
- *
- * ```
- * ./septentrio_osr_example \
- *   --polaris-osr \
- *   --polaris-osr-api-key=ABCD1234 --polaris-osr-unique-id=fred \
- *   --polaris-ssr \
- *   --polaris-ssr-api-key=ABCD1234 --polaris-ssr-unique-id=fred \
- *   --polaris-ssr-beacon=SSR1234
- * ```
- *
- * Connect a Septentrio using `/dev/ttyACM0` and receive SSR corrections over
- * L-band through the Septentrio on `/dev/ttyACM1` (default):
- *
- * ```
- * ./septentrio_osr_example --lband
- * ```
- *
- * Configure required settings for a Septentrio connected on `/dev/ttyACM3`:
- * ```
- * ./septentrio_osr_example --sbf-path=/dev/ttyACM3
- * ```
- *
- * @section osr_septentrio_polaris Connecting To Polaris
- *
- * To connect to Polaris to receive OSR or SSR data over IP, you must provide
- * the Polaris API key assigned to you by Point One, and you must specify a
- * unique ID string for your device.
- *
- * @note
- * The SSR corrections service currently uses different API keys than the OSR
- * service. When using both OSR and SSR, please ensure that you use the correct
- * keys as instructed by Point One.
- *
- * @warning
- * When using the same API key for multiple devices, each device must have its
- * own unique ID to prevent unexpected behavior.
- *
- * For SSR corrections, you must also provide a _beacon ID_, which designates
- * the appropriate SSR data stream. This will be provided by Point One.
- *
- * @section osr_septentrio_rx_config Configuring The Septentrio
- *
- * This application requires the Septentrio to be configured to output the
- * following Septentrio binary format (SBF) messages on its serial interface:
- * - `PVTGeodetic2` - Position and time updates from the receiver (recommended
- *   1 second interval)
- * - `GPSNav`, `GLONav`, `GALNav`, `BDSNav` - Satellite ephemeris data
- *   (recommended on-change)
- *
- * To use L-band, the Septentrio should be configured for L-band parameters
- * and to output the incoming data on a _separate_ serial interface.
- *
- * By default, this application will attempt to configure the Septentrio for
- * these outputs. If desired, you can disable this automatic configuration
- * via the `--noconfigure` option.
+ * See `README.md` for more details and usage examples.
  ******************************************************************************/
 
 #include <functional>
@@ -87,7 +25,7 @@
 #include <glog/logging.h>
 #include <point_one/polaris/polaris_client.h>
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 #include "serial_port.h"
 #include "point_one/polaris/osr_producer.h"
@@ -138,7 +76,7 @@ DEFINE_string(
     "SBF messages and to which to write corrections messages. (default: "
     "/dev/ttyACM0)");
 
-DEFINE_uint32(sbf_speed, 460800, "The receiver's DBF port's serial port's "
+DEFINE_uint32(sbf_speed, 460800, "The receiver's SBF port's serial port's "
     "speed.");
 
 DEFINE_string(
@@ -206,7 +144,12 @@ DEFINE_string(geoid_file, "external/share/egm2008-15.pgm",
 // Misc settings
 ////////////////////////////////////////////////////////////////////////////////
 
-DEFINE_bool(configure, true, "Enable receiver configuration.");
+DEFINE_string(configure, "all",
+              "Configure the receiver as follows:\n"
+              "- all - Apply both lband and position configuration settings\n"
+              "- lband - Configure L-band reception settings\n"
+              "- position - Configure 1 Hz position (PVTGeodetic2) and "
+              "ephemeris (*Nav)");
 
 /******************************************************************************/
 using namespace point_one::polaris;
@@ -242,11 +185,17 @@ void Wait() {
 } // namespace signal_listener
 
 /******************************************************************************/
-static void ConfigureSeptentrio(SerialPort& port) {
+static void ConfigureSeptentrio(const std::string& configuration_type,
+                                SerialPort& port) {
+  if (configuration_type == "none") {
+    return;
+  }
+
   port.Write("SSSSSSSSSS\r");
 
   std::ostringstream ss;
-  if (FLAGS_lband) {
+  if (FLAGS_lband &&
+      (configuration_type == "lband" || configuration_type == "all")) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     ss.str("");
@@ -278,20 +227,22 @@ static void ConfigureSeptentrio(SerialPort& port) {
     port.Write(ss.str());
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  if (configuration_type == "position" || configuration_type == "all") {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-  ss.str("");
-  ss << "setSBFOutput, Stream2, " << FLAGS_sbf_interface
-     << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic2, sec1\r";
-  VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
-  port.Write(ss.str());
+    ss.str("");
+    ss << "setSBFOutput, Stream2, " << FLAGS_sbf_interface
+       << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic2, sec1\r";
+    VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
+    port.Write(ss.str());
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-  ss.str("");
-  ss << "setDataInOut, " << FLAGS_sbf_interface << ", , SBF\r";
-  VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
-  port.Write(ss.str());
+    ss.str("");
+    ss << "setDataInOut, " << FLAGS_sbf_interface << ", , SBF\r";
+    VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
+    port.Write(ss.str());
+  }
 }
 
 /******************************************************************************/
@@ -355,9 +306,7 @@ int main(int argc, char* argv[]) {
   });
 
   // Configure the Septentio to send SBF and raw L-band byte streams.
-  if (FLAGS_configure) {
-    ConfigureSeptentrio(corrections_out_port);
-  }
+  ConfigureSeptentrio(FLAGS_configure, corrections_out_port);
 
   // Usefulness check.
   if (!FLAGS_polaris_osr && !FLAGS_polaris_ssr && !FLAGS_lband) {
