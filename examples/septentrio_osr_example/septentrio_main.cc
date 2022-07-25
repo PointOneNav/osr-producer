@@ -73,8 +73,10 @@
  * and to output the incoming data on a _separate_ serial interface.
  *
  * By default, this application will attempt to configure the Septentrio for
- * these outputs. If desired, you can disable this automatic configuration
- * via the `--noconfigure` option.
+ * these outputs. If desired, you can configure only L-band or
+ * position/ephemeris settings by specifying `--configure=lband` or
+ * `--configure=position` respectively, or you can disable automatic
+ * configuration by specifying `--configure=none`.
  ******************************************************************************/
 
 #include <functional>
@@ -206,7 +208,12 @@ DEFINE_string(geoid_file, "external/share/egm2008-15.pgm",
 // Misc settings
 ////////////////////////////////////////////////////////////////////////////////
 
-DEFINE_bool(configure, true, "Enable receiver configuration.");
+DEFINE_string(configure, "all",
+              "Configure the receiver as follows:\n"
+              "- all - Apply both lband and position configuration settings\n"
+              "- lband - Configure L-band reception settings\n"
+              "- position - Configure 1 Hz position (PVTGeodetic2) and "
+              "ephemeris (*Nav)");
 
 /******************************************************************************/
 using namespace point_one::polaris;
@@ -242,11 +249,17 @@ void Wait() {
 } // namespace signal_listener
 
 /******************************************************************************/
-static void ConfigureSeptentrio(SerialPort& port) {
+static void ConfigureSeptentrio(const std::string& configuration_type,
+                                SerialPort& port) {
+  if (configuration_type == "none") {
+    return;
+  }
+
   port.Write("SSSSSSSSSS\r");
 
   std::ostringstream ss;
-  if (FLAGS_lband) {
+  if (FLAGS_lband &&
+      (configuration_type == "lband" || configuration_type == "all")) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     ss.str("");
@@ -278,20 +291,22 @@ static void ConfigureSeptentrio(SerialPort& port) {
     port.Write(ss.str());
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  if (configuration_type == "position" || configuration_type == "all") {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-  ss.str("");
-  ss << "setSBFOutput, Stream2, " << FLAGS_sbf_interface
-     << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic2, sec1\r";
-  VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
-  port.Write(ss.str());
+    ss.str("");
+    ss << "setSBFOutput, Stream2, " << FLAGS_sbf_interface
+       << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic2, sec1\r";
+    VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
+    port.Write(ss.str());
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-  ss.str("");
-  ss << "setDataInOut, " << FLAGS_sbf_interface << ", , SBF\r";
-  VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
-  port.Write(ss.str());
+    ss.str("");
+    ss << "setDataInOut, " << FLAGS_sbf_interface << ", , SBF\r";
+    VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
+    port.Write(ss.str());
+  }
 }
 
 /******************************************************************************/
@@ -355,9 +370,7 @@ int main(int argc, char* argv[]) {
   });
 
   // Configure the Septentio to send SBF and raw L-band byte streams.
-  if (FLAGS_configure) {
-    ConfigureSeptentrio(corrections_out_port);
-  }
+  ConfigureSeptentrio(FLAGS_configure, corrections_out_port);
 
   // Usefulness check.
   if (!FLAGS_polaris_osr && !FLAGS_polaris_ssr && !FLAGS_lband) {
