@@ -1,8 +1,8 @@
 # Copyright (C) Point One Navigation - All Rights Reserved
 cmake_minimum_required(VERSION 3.14)
 
-set(LIBOSR_PRODUCER_URL "" CACHE STRING "Specify the URL of the verison of libosr_producer to be used.")
-set(LIBOSR_PRODUCER_HASH "" CACHE STRING "Specify the MD5 hash libosr_producer zip file to be downloaded.")
+set(LIBOSR_PRODUCER_URL "https://s3.amazonaws.com/files.pointonenav.com/polaris/ssr/osr_producer.v0.2.2.tar.gz" CACHE STRING "Specify the URL of the verison of libosr_producer to be used.")
+set(LIBOSR_PRODUCER_HASH "a1c7f7ed0de2f1799d7d6e2be00c4795" CACHE STRING "Specify the MD5 hash libosr_producer zip file to be downloaded.")
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

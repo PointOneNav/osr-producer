@@ -54,7 +54,7 @@ DEFINE_string(polaris_osr_unique_id, "ssr-to-osr",
 DEFINE_bool(polaris_ssr, false,
             "Read SSR correction data from a Polaris server. You must provide "
             "a Polaris beacon ID and a API key.");
-DEFINE_string(polaris_ssr_hostname, "ssrz.polaris.p1beta.com",
+DEFINE_string(polaris_ssr_hostname, "ssr.polaris.p1beta.com",
               "The hostname of the Polaris server providing SSR corrections.");
 DEFINE_string(polaris_ssr_api_hostname, "api.p1beta.com",
               "The hostname of the Polaris API server.");
@@ -232,7 +232,7 @@ static void ConfigureSeptentrio(const std::string& configuration_type,
 
     ss.str("");
     ss << "setSBFOutput, Stream2, " << FLAGS_sbf_interface
-       << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic2, sec1\r";
+       << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic, sec1\r";
     VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
     port.Write(ss.str());
 
