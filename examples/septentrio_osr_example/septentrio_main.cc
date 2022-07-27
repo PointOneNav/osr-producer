@@ -137,7 +137,7 @@ DEFINE_uint32(rtcm_position_type, 1005,
               "The type of RTCM position message to generate when using SSR "
               "corrections.");
 
-DEFINE_string(geoid_file, "external/share/egm2008-15.pgm",
+DEFINE_string(geoid_file, "_deps/libosr_producer-src/data/egm2008-15.pgm",
               "The path to a *.pgm file containing geoid data.");
 
 ////////////////////////////////////////////////////////////////////////////////
