@@ -58,7 +58,7 @@ DEFINE_string(polaris_ssr_hostname, "ssrz.polaris.p1beta.com",
               "The hostname of the Polaris server providing SSR corrections.");
 DEFINE_string(polaris_ssr_api_hostname, "api.p1beta.com",
               "The hostname of the Polaris API server.");
-DEFINE_string(polaris_ssr_beacon, "The ID of the beacon providing SSR.", "");
+DEFINE_string(polaris_ssr_beacon, "", "The ID of the beacon providing SSR.");
 DEFINE_string(polaris_ssr_api_key, "",
               "The API key to use when connecting to Polaris for SSR.");
 DEFINE_string(polaris_ssr_unique_id, "",
@@ -289,8 +289,7 @@ int main(int argc, char* argv[]) {
   OSRProducer producer(config);
   std::mutex producer_lock;
 
-  // Create a Boost IO service and thread to handle IO for the serial ports
-  // and the NTRIP client.
+  // Create a Boost IO service and thread to handle IO for the serial ports.
   boost::asio::io_service io_service;
   boost::asio::io_service::work work(io_service);
   std::thread event_loop_thread(
