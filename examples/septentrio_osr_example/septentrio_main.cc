@@ -54,11 +54,11 @@ DEFINE_string(polaris_osr_unique_id, "ssr-to-osr",
 DEFINE_bool(polaris_ssr, false,
             "Read SSR correction data from a Polaris server. You must provide "
             "a Polaris beacon ID and a API key.");
-DEFINE_string(polaris_ssr_hostname, "ssrz.polaris.p1beta.com",
+DEFINE_string(polaris_ssr_hostname, "ssr.polaris.p1beta.com",
               "The hostname of the Polaris server providing SSR corrections.");
 DEFINE_string(polaris_ssr_api_hostname, "api.p1beta.com",
               "The hostname of the Polaris API server.");
-DEFINE_string(polaris_ssr_beacon, "The ID of the beacon providing SSR.", "");
+DEFINE_string(polaris_ssr_beacon, "", "The ID of the beacon providing SSR.");
 DEFINE_string(polaris_ssr_api_key, "",
               "The API key to use when connecting to Polaris for SSR.");
 DEFINE_string(polaris_ssr_unique_id, "",
@@ -137,7 +137,7 @@ DEFINE_uint32(rtcm_position_type, 1005,
               "The type of RTCM position message to generate when using SSR "
               "corrections.");
 
-DEFINE_string(geoid_file, "external/share/egm2008-15.pgm",
+DEFINE_string(geoid_file, "_deps/libosr_producer-src/data/egm2008-15.pgm",
               "The path to a *.pgm file containing geoid data.");
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -232,7 +232,7 @@ static void ConfigureSeptentrio(const std::string& configuration_type,
 
     ss.str("");
     ss << "setSBFOutput, Stream2, " << FLAGS_sbf_interface
-       << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic2, sec1\r";
+       << ", GPSNav+GLONav+GALNav+BDSNav+PVTGeodetic, sec1\r";
     VLOG(1) << "Sending Septentrio command: \"" << ss.str() << "\"";
     port.Write(ss.str());
 
@@ -289,8 +289,7 @@ int main(int argc, char* argv[]) {
   OSRProducer producer(config);
   std::mutex producer_lock;
 
-  // Create a Boost IO service and thread to handle IO for the serial ports
-  // and the NTRIP client.
+  // Create a Boost IO service and thread to handle IO for the serial ports.
   boost::asio::io_service io_service;
   boost::asio::io_service::work work(io_service);
   std::thread event_loop_thread(
